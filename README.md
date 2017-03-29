@@ -1,5 +1,5 @@
 # Summary
-Its a proof of concept that is possible to create a framework for native mobile user interface components with Lua.
+Is it possible to write code in Lua to generate a cross-platform mobile software with native look and feel? I think so...
 
 # Objectives
 
