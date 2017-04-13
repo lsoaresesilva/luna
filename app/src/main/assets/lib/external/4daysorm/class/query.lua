@@ -57,7 +57,8 @@ function Query(own_table, data)
         -----------------------------------------
         _set_col = function (self, colname, colvalue)
             local coltype
-
+            print("coltype")
+            print(self._data[colname])
             if self._data[colname] and self._data[colname].new and colname ~= ID then
                 coltype = self.own_table:get_column(colname)
 
@@ -139,9 +140,12 @@ function Query(own_table, data)
             local set, coltype
 
             for colname, colinfo in pairs(self._data) do
-                if colinfo.old ~= colinfo.new and colname ~= ID then
-                    coltype = self.own_table:get_column(colname)
 
+
+                if --[[colinfo.old ~= colinfo.new and]] colname ~= ID then
+                    coltype = self.own_table:get_column(colname)
+                    print("colunatype")
+                    print(coltype)
                     if coltype and coltype.field.validator(colinfo.new) then
                         set = " `" .. colname .. "` = " ..
                               coltype.field.as(colinfo.new)
@@ -156,8 +160,10 @@ function Query(own_table, data)
 
             set = table.join(equation_for_set, ",")
 
+
             if set ~= "" then
                 update = update .. " SET " .. set .. "\n\t    WHERE `" .. ID .. "` = " .. self.id
+                print(update)
                 return update
             end
         end,
@@ -168,7 +174,13 @@ function Query(own_table, data)
 
         -- save row
         save = function (self)
+
             local sql
+
+            print("identi")
+            print(self)
+            print(self.name)
+            print(self.id)
             if self.id then
                 sql = self:_update()
             else
@@ -184,8 +196,8 @@ function Query(own_table, data)
             if self.id then
                 delete = "DELETE FROM `" .. self.own_table.__tablename__ .. "` "
                 delete = delete .. "WHERE `" .. ID .. "` = " .. self.id
-
-                db:execute(delete)
+                return delete
+                --db:execute(delete)
             end
             self._data = {}
         end
@@ -222,7 +234,7 @@ function Query(own_table, data)
 
     setmetatable(query, {__index = query._get_col,
                          __newindex = query._set_col})
-
+    print("retornando query")
     return query
 end
 

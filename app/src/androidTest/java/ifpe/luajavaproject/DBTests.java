@@ -20,6 +20,8 @@ import java.util.HashMap;
 
 import luna.luna.sqlite.ActiveRecordNative;
 import luna.luna.sqlite.DBAdapter;
+import luna.luna.util.ArrayListNative;
+import luna.luna.util.DictionaryNative;
 
 import static android.support.test.InstrumentationRegistry.getTargetContext;
 import static org.mockito.Mockito.mock;
@@ -47,9 +49,34 @@ public class DBTests {
     public void testExecuteSQL() {
         getTargetContext().deleteDatabase("mydbs");
         DBAdapter dbAdapter = new DBAdapter(getTargetContext());
-        String value = "CREATE TABLE PESSOA (NOME VARCHAR (255) NOT NULL);";
+        String value = "CREATE TABLE IF NOT EXISTS  PESSOA (NOME VARCHAR (255) NOT NULL);";
 
         Assert.assertTrue(dbAdapter.executeSQL(value));
+    }
+
+    @Test(expected = SQLiteException.class )
+    public void testQuerySQLWithMalFormedSQL() {
+        getTargetContext().deleteDatabase("mydbs");
+        DBAdapter dbAdapter = new DBAdapter(getTargetContext());
+        String value = "SQL INSERT";
+
+        dbAdapter.querySQL(value);
+    }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void testQuerySQLWithNullSQL() {
+        getTargetContext().deleteDatabase("mydbs");
+        DBAdapter dbAdapter = new DBAdapter(getTargetContext());
+        dbAdapter.querySQL(null);
+    }
+
+    @Test
+    public void testQuerySQL() {
+
+        DBAdapter dbAdapter = new DBAdapter(getTargetContext());
+        ArrayListNative<DictionaryNative<String, Object>> result = dbAdapter.querySQL("SELECT * FROM PESSOA");
+
+        Assert.assertEquals(1, result.size());
     }
 
     /*@Test

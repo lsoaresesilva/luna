@@ -25,6 +25,7 @@ local JOIN = {
 
 local Select = function(own_table)
     return {
+        opa = 2,
         ------------------------------------------------
         --          Table info varibles               --
         ------------------------------------------------
@@ -97,7 +98,7 @@ local Select = function(own_table)
             elseif colname:endswith(IN) or colname:endswith(NOT_IN) then
                 rule = colname:endswith(IN) and IN or NOT_IN
 
-                if type(value) == "table" and table.getn(value) > 0 then
+                if type(value) == "table" and #value > 0 then
                     colname = string.cutend(colname, rule)
                 table_column = self.own_table:get_column(colname)
                     _in = {}
@@ -269,7 +270,17 @@ local Select = function(own_table)
         end,
 
         -- Method for build select with rules
+        _checkIfWhereClauseExists = function (self)
+          local whereExists = false
+          for k,v in pairs(self._rules.where) do
+                whereExists = true
+                break
+            end
+          return whereExists
+        end,
         _select = function (self)
+
+            print("entrou no select")
             local including = self:_build_including()
             local joining = ""
             local _select
@@ -278,12 +289,13 @@ local Select = function(own_table)
             local where
             local rule
             local join
-
+            print("vai criar a query")
             --------------------- Include Columns To Select ------------------
             _select = "SELECT " .. including
 
             -- Add join rules
-            if table.getn(self._rules.columns.join) > 0 then
+            if #self._rules.columns.join > 0 then
+                print("entrou join")
                 local unique_tables = {}
                 local join_tables = {}
                 local left_table, right_table
@@ -306,8 +318,10 @@ local Select = function(own_table)
                 join = self:_build_join()
             end
 
+            print(self._rules.columns.include)
             -- Check agregators in select
-            if table.getn(self._rules.columns.include) > 0 then
+            if #self._rules.columns.include > 0 then
+
                 local aggregators = {}
                 local aggregator, as
 
@@ -327,13 +341,15 @@ local Select = function(own_table)
             end
 
             -- Build WHERE
-            if next(self._rules.where) then
+
+            if self:_checkIfWhereClauseExists() then
+              print("ta aqui")
                 condition = self:_condition(self._rules.where, "\nWHERE")
                 _select = _select .. " " .. condition
             end
 
             -- Build GROUP BY
-            if table.getn(self._rules.group) > 0 then
+            if #self._rules.group > 0 then
                 rule = self:_update_col_names(self._rules.group)
                 rule = table.join(rule)
                 _select = _select .. " \nGROUP BY " .. rule
@@ -346,7 +362,7 @@ local Select = function(own_table)
             end
 
             -- Build ORDER BY
-            if table.getn(self._rules.order) > 0 then
+            if #self._rules.order > 0 then
                 rule = self:_update_col_names(self._rules.order)
                 rule = table.join(rule)
                 _select = _select .. " \nORDER BY " .. rule
@@ -361,8 +377,8 @@ local Select = function(own_table)
             if self._rules.offset then
                 _select = _select .. " \nOFFSET " .. self._rules.offset
             end
-
-            return db:rows(_select, self.own_table)
+            --return db:rows(_select, self.own_table)
+            return _select
         end,
 
         -- Add column to table
@@ -460,11 +476,15 @@ local Select = function(own_table)
 
         -- SQL Where query rules
         where = function (self, args)
-            for col, value in pairs(args) do
-                self._rules.where[col] = value
+            
+            for index, column in pairs(args) do
+                for columnName, columnValue in pairs(column) do
+                  self._rules.where[columnName] = columnValue
+                end
             end
 
             return self
+
         end,
 
         -- Set returned data limit
@@ -538,7 +558,7 @@ local Select = function(own_table)
                 end
 
                 -- Build WHERE
-                if next(self._rules.where) then
+                if self:_checkIfWhereClauseExists() then
                     _where = self:_condition(self._rules.where, "\nWHERE")
                 else
                     BACKTRACE(INFO, "No 'where' statement. All data update!")
@@ -551,7 +571,7 @@ local Select = function(own_table)
                         _update = _update .. " SET " .. table.concat(_set_tbl,",") .. " " .. _where
                     end
 
-                    db:execute(_update)
+                    return _update
                 else
                     BACKTRACE(WARNING, "No table columns for update")
                 end
@@ -568,13 +588,13 @@ local Select = function(own_table)
             local _delete = "DELETE FROM `" .. self.own_table.__tablename__ .. "` "
 
             -- Build WHERE
-            if next(self._rules.where) then
+            if self:_checkIfWhereClauseExists() == true then
                 _delete = _delete .. self:_condition(self._rules.where, "\nWHERE")
             else
                 BACKTRACE(WARNING, "Try delete all values")
             end
 
-            db:execute(_delete)
+            return _delete
         end,
 
         --------------------------------------------------------
@@ -584,16 +604,26 @@ local Select = function(own_table)
         -- Return one value
         first = function (self) 
             self._rules.limit = 1
-            local data = self:all()
+            local _firstSQL = self:all()
 
-            if data:count() == 1 then
-                return data[1]
-            end
+            return _firstSQL
         end,
 
         -- Return list of values
+        _all = function(self, rows)
+            return QueryList(self.own_table, data)
+        end,
         all = function (self)
-            local data = self:_select()
+            print("entrou no all")
+            print(self.opa)
+            local sqlSelect = self:_select()
+            return sqlSelect
+            -- TODO: Pegar as linhas do Android e então criar esta QueryList a partir delas.
+            --local objQuery = QueryList(self.own_table, data)
+            --return QueryList(self.own_table, data)
+        end,
+
+        _generate = function (self, data)
             return QueryList(self.own_table, data)
         end
     }

@@ -3,6 +3,7 @@ package ifpe.luajavaproject;
 import android.app.Activity;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.facebook.stetho.Stetho;
 
@@ -52,7 +53,8 @@ public class MainActivity extends AppCompatActivity implements ResourceFinder {
 
             chunk.call();
         }catch(Exception e ){
-            System.out.print(e.getMessage());
+            Log.e("error", e.getMessage());
+
         }
 
         // Como gerenciar pediso para gps , camera, etc? tlvz usar um factory que retorne ao usuário acesso a estas classes

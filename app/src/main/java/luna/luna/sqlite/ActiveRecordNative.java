@@ -21,6 +21,8 @@ import java.util.logging.Logger;
 
 public class ActiveRecordNative {
 
+
+
     /*private ArrayList<HashMap<String, Object>> columnsDefinitions;
     private String tableName;
     private DBAdapter database;

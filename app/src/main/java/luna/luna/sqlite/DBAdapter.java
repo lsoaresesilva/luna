@@ -2,6 +2,7 @@ package luna.luna.sqlite;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.test.mock.MockContext;
@@ -11,6 +12,17 @@ import org.luaj.vm2.LuaValue;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import luna.luna.util.ArrayListNative;
+import luna.luna.util.DictionaryNative;
+
+import static android.database.Cursor.FIELD_TYPE_BLOB;
+import static android.database.Cursor.FIELD_TYPE_FLOAT;
+import static android.database.Cursor.FIELD_TYPE_INTEGER;
+import static android.database.Cursor.FIELD_TYPE_NULL;
+import static android.database.Cursor.FIELD_TYPE_STRING;
 
 /**
  * Created by macbookair on 05/04/17.
@@ -33,6 +45,11 @@ public class DBAdapter extends SQLiteOpenHelper{
         this.context = context;
     }
 
+    /**
+     * Executes the @param SQL on database. Should be used only for commands which do not produce results.
+     * @param SQL
+     * @return
+     */
     public boolean executeSQL(String SQL){
         if(SQL == null){
             throw new IllegalArgumentException("Cannot execute SQL because there were no SQL informed.");
@@ -43,8 +60,39 @@ public class DBAdapter extends SQLiteOpenHelper{
         }*/
 
         SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL(SQL.toString());
+        db.execSQL(SQL);
         return true;
+    }
+
+    public Integer save(String SQL){
+        // inserir no banco
+        if( this.executeSQL(SQL)){
+            // pegar o último registro e seu id
+            // pega a tabela do insert
+
+
+
+            Pattern pattern = Pattern.compile("INTO (\\w+) \\(");
+            Matcher matcher = pattern.matcher(SQL);
+            String tableName = null;
+            if (matcher.find())
+            {
+                tableName = matcher.group(1);
+            }
+            ArrayListNative<DictionaryNative<String, Object>> result = this.querySQL("SELECT rowid FROM "+tableName+" ORDER BY ROWID DESC LIMIT 1");
+            if( result.size() > 0 ){
+                if( result.get(0).get("rowid") != null ){
+                    return (Integer)result.get(0).get("rowid");
+                }else{
+                    return null;
+                }
+            }else{
+                return null;
+            }
+        }else{
+            return null;
+        }
+
     }
 
     /*public String generateCreateTableSQL(ActiveRecordNative model){
@@ -111,6 +159,51 @@ public class DBAdapter extends SQLiteOpenHelper{
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
 
+    }
+
+    public ArrayListNative<DictionaryNative<String, Object>> querySQL(String SQL) {
+        if(SQL == null){
+            throw new IllegalArgumentException("SQL query cannot be null");
+        }
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        Cursor c = db.rawQuery(SQL, null);
+
+
+        String[] columns = c.getColumnNames();
+        ArrayListNative<DictionaryNative<String, Object>> results = new ArrayListNative<>();
+
+        try {
+            while (c.moveToNext()) {
+                DictionaryNative<String, Object> columnsValues = new DictionaryNative<>();
+                for (int i = 0; i < columns.length; i++) {
+                    int index = c.getColumnIndexOrThrow(columns[i]);
+                    int type = c.getType(index);
+
+                    if (type == FIELD_TYPE_NULL) {
+                        columnsValues.put(columns[i], null);
+                    } else if (type == FIELD_TYPE_BLOB) {
+                        columnsValues.put(columns[i], c.getBlob(index).toString());
+
+                    } else if (type == FIELD_TYPE_FLOAT) {
+                        columnsValues.put(columns[i], Float.valueOf(c.getFloat(index)));
+                    } else if (type == FIELD_TYPE_INTEGER) {
+                        columnsValues.put(columns[i], Integer.valueOf(c.getInt(i)));
+                    } else if (type == FIELD_TYPE_STRING) {
+                        columnsValues.put(columns[i], c.getString(i));
+                    }
+
+
+                }
+                results.add(columnsValues);
+            }
+        }catch(Exception e){
+
+        }finally {
+            c.close();
+        }
+
+        return results;
     }
 
     /*public boolean createTable(ActiveRecordNative model) {
