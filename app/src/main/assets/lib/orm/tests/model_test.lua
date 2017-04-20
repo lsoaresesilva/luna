@@ -4,41 +4,40 @@ package.path = package.path..";../../../models/?.lua"
 package.path = package.path..";../../util/?.lua"
 
 require("model")
-local Casa = require("Casa")
 
-describe("Instantiating a model", function()
+local rawStub = {
+    count = function()
+        return 0
+    end,
+    get = function(pos)
+        return {
+            getAllKeys = function()
+                return {self, self, self, self}
+            end
+        }
+    end
+}
+
+describe("Creating models from SQL results", function()
     
-      it("Should fail, because there is no column definitions", function()
+    it("Should fail, because there is no sql passed as parameter", function()
           assert.has.errors(function() 
-              Model:init()
-              end)
-      end)
+              Model:buildModels()
+              end, "Cannot generate models without SQL rows.")
+    end)
+
+    it("Should fail, because there an invalid raw sql was passed", function()
+        assert.has.errors(function()
+            Model:buildModels({})
+        end, "Cannot generate models without a valid raw sql.")
+    end)
+
+    it("Should return zero models as there were no sql results", function()
+
+        local result = #Model:buildModels(rawStub)
+        assert.equals(0, result)
+
+    end)
     
-    it("Should fail, because there is no model", function()
-          assert.has.errors(function() 
-              Model:init({})
-              end)
-      end)
-    
-    it("Should fail, because model does not contains columns definitions", function()
-          assert.has.errors(function() 
-              Model:init({}, {})
-              end)
-      end)
-    
-     it("Should create a column structure for this model", function()
-          local leonardo = Casa({idade=30})
-          local result = leonardo.columns
-          assert.are.equals("table", type(result))
---          assert.are.equals("table", type(result.telefone))
-      end)
-
-end)
-
-describe("Returning instances from database", function()
-
-    it("should return a table with tables which contains columns values", function()
-
-        end)
 
 end)

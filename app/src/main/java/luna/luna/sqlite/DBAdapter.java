@@ -51,14 +51,11 @@ public class DBAdapter extends SQLiteOpenHelper{
      * @return
      */
     public boolean executeSQL(String SQL){
-        if(SQL == null){
-            throw new IllegalArgumentException("Cannot execute SQL because there were no SQL informed.");
+        if(SQL == null || SQL.equals(""){
+            throw new IllegalArgumentException("An nil or empty SQL was used.");
         }
 
-        /*if(!SQL.isstring()){
-            throw new IllegalArgumentException("SQL must be a string.");
-        }*/
-
+		// TODO pegar o exception e mandar pro user
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL(SQL);
         return true;

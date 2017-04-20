@@ -41,14 +41,23 @@ local class
   })
  ]]
 
---DEBUG = true
+TEST = true
 local class
-if DEBUG == false then
+if TEST == false then
     class = require("lib.external.30log")
     require("lib.orm.create_table")
+    require("lib.util.table_util")
 else
     class = require("30log")
     require("create_table")
+    DBAdapter = { -- mock class
+        querySQL = function(query)
+            return {}
+        end,
+        executeSQL = function(query)
+            return true
+        end
+    }
 end
 
 --[[
@@ -81,18 +90,42 @@ function Model:init(columns, model)
     end
     
     self:_createTableSQL(model)
-
 end
 
 function Model:findAll()
     local generatedSql = Table:_generateSQLSelect(self)
-    --local generatedSql = "SELECT t1.rowid as Casa_rowid, t1.nome as Casa_nome,t1.idade as Casa_idade, t2.sobrenome as Pessoa_sobrenome, t2.cpf as Pessoa_cpf FROM Casa as t1 LEFT OUTER JOIN Pessoa as t2 ON t1.pessoa_id = t2.rowid"
+    -- reset clauses, so it can be set next time.
+    self.whereClause = nil
+    self.orClause = nil
     local rawResults = DBAdapter:querySQL(generatedSql)
     local models = self:buildModels(rawResults)
+
     return models
 end
 
+function Model:where(conditions)
+    self.whereClause = Table:_generateSQLWhere(conditions)
+    return self
+end
+
+function Model:OR(conditions)
+    if self.whereClause == nil or type(self.whereClause) ~= "string" then
+        error("You must call WHERE before calling or.")
+    end
+
+    self.orClause = Table:_generateSQLWhereOR(conditions)
+    return self
+end
+
 function Model:buildModels( rawNativeSQLResult )
+    if rawNativeSQLResult == nil then
+        error("Cannot generate models without SQL rows.")
+    end
+
+    if type(rawNativeSQLResult) ~= "table" or rawNativeSQLResult["count"] == nil or rawNativeSQLResult["get"] == nil then
+        error("Cannot generate models without a valid raw sql.")
+    end
+
     local models = {}
 
     for i=0, rawNativeSQLResult:count()-1 do -- starts in 0 as it is a Java/Objective-c array
@@ -100,6 +133,7 @@ function Model:buildModels( rawNativeSQLResult )
         local columnValueDictionary = rawNativeSQLResult:get(i)
         local model = {}
         local belongedModels = {}
+        local hasManyModels = {}
 
         if self.belongsTo ~= nil then
             for foreignKey, foreignTable in pairs(self.belongsTo) do
@@ -108,12 +142,14 @@ function Model:buildModels( rawNativeSQLResult )
             end
         end
 
+        if self.hasMany ~= nil and type(self.hasMany) == "table" then
+            for foreignKey, foreignTable in pairs(self.hasMany) do
+
+                hasManyModels[foreignKey] = {}
+            end
+        end
+
         local columns = columnValueDictionary:getAllKeys()
-
-        -- verificar a quem pertence a coluna: pode ser a própria classe:
-        -- Casa_
-        -- pode ser a um de seus belongs, ter esta lista pronta
-
 
         for j=0, columns:count()-1 do -- starts in 0 as it is a Java/Objective-c array
 
@@ -122,20 +158,15 @@ function Model:buildModels( rawNativeSQLResult )
             local alias = string.gsub(columnNameWithAlias, "_(.*)", "")
             local columnValue = columnValueDictionary:get(columnNameWithAlias)
 
-            --columnNames  follows this pattern: Classname_column, lets get only column.
-            --local columnNamedUp = columnName:gsub(self.name.."_", "")
-            if alias == model.name then
+            if alias == self.name then
                 model[columnNameWithoutAlias] = columnValue
             else
                 if self.belongsTo ~= nil and self.belongsTo[alias] ~= nil then
-
                     belongedModels[alias][columnNameWithoutAlias] = columnValue
                 end
             end
 
         end
-
-
 
         for foreignKeyName, v in pairs(belongedModels) do
 
@@ -149,22 +180,29 @@ function Model:buildModels( rawNativeSQLResult )
             end
         end
 
+        if model.rowid ~= nil then
+            for recordsName, className in pairs(hasManyModels) do
+                local foreignKey = self.name.."_id"
+                local condition = {}
+                condition[foreignKey] = model.rowid
+                local hasManyClass = require("models."..self.hasMany[recordsName])
+                local foreignRows = hasManyClass:where(condition):findAll()
+                if foreignRows ~= nil and type(foreignRows) == "table" and #foreignRows > 0 then
+                    model[recordsName] = foreignRows
+                else
+                    model[recordsName] = {}
+                end
+            end
+        end
+
+
         local myClass = require("models."..self.name)
         local myModel = myClass(model)
+
         table.insert(models, myModel)
     end
 
     return models
-end
-
-function Model:update()
-    local generatedSql = Table:_generateSQLUpdate(self)
-    local result = DBAdapter:executeSQL(generatedSql)
-    if result then
-        return true
-    end
-
-    return false
 end
 
 function Model:delete()
@@ -179,15 +217,26 @@ function Model:delete()
 end
 
 function Model:save()
-    local generatedSqlSave = Table:_generateSQLInsert(self)
-    local primaryKey = DBAdapter:save(generatedSqlSave)
+    if self.rowid == nil then
 
-    if primaryKey ~= nil then
-        self.rowid = primaryKey
-        return true
+        local generatedSqlSave = Table:_generateSQLInsert(self)
+        local primaryKey = DBAdapter:save(generatedSqlSave)
+
+        if primaryKey ~= nil then
+            self.rowid = primaryKey
+            return true
+        end
+
+        return false
+    else
+        local generatedSql = Table:_generateSQLUpdate(self)
+        local result = DBAdapter:executeSQL(generatedSql)
+        if result then
+            return true
+        end
+
+        return false
     end
-
-    return false
 end
 
 -- Creates a table in SQLite based on this model columns definitions
@@ -198,10 +247,8 @@ function Model:_createTableSQL(model)
       if model.columns == nil and model.name == nil then
           error( "You should not call this method directly.")
       end
-    
-    
-      local sql = Table:_generateSQL(model)
 
+      local sql = Table:_generateSQL(model)
 
       if DEBUG == false then
         result = DBAdapter:executeSQL(sql)
@@ -217,9 +264,4 @@ function Model:_createTableSQL(model)
 
     return result
 end
-  
-  
-  
-  
-
 return Model

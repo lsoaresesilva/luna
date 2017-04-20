@@ -14,7 +14,8 @@ end
 local Pessoa = Model:extend("Pessoa", { columns = {
     sobrenome = {},
     cpf = { notNull=true }
-  }
+  },
+    hasMany={casas='Casa'}
   })
 
 function Pessoa:init(columns)

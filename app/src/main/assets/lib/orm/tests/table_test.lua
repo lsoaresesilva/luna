@@ -59,17 +59,38 @@ end)
 
 describe("Generating SQL for select", function()
 
-    it("Cannot generate SQL because a model has no name", function ()
+    it("should fail  because a model has no name", function ()
 
         assert.has.errors(function()
             Table:_generateSQLSelect({})
         end)
     end)
 
-    it("Cannot generate SQL because a model was not passed as parameter", function ()
+    it("should fail because a model was not passed as parameter", function ()
 
         assert.has.errors(function()
             Table:_generateSQLSelect()
+        end)
+    end)
+
+    it("should fail because a model has a invalid whereClause", function ()
+        local casaClass = {name="Casa", columns = {
+            nome = {},
+            idade = { notNull=true }} }
+        casaClass.whereClause = {}
+        assert.has.errors(function()
+            Table:_generateSQLSelect(casaClass)
+        end)
+    end)
+
+    it("should fail because a model has a invalid OR clause", function ()
+        local casaClass = {name="Casa", columns = {
+            nome = {},
+            idade = { notNull=true }} }
+        casaClass.whereClause = {id=123}
+        casaClass.orClause = {}
+        assert.has.errors(function()
+            Table:_generateSQLSelect(casaClass)
         end)
     end)
 
@@ -88,8 +109,80 @@ describe("Generating SQL for select", function()
             nome = {},
             idade = { notNull=true }}}
         local sql = Table:_generateSQLSelect(casaClass)
-        assert.are.equals("SELECT t1.rowid as Casa_rowid, t1.nome as Casa_nome,t1.idade as Casa_idade, t2.sobrenome as Pessoa_sobrenome, t2.cpf as Pessoa_cpf FROM Casa as t1 LEFT OUTER JOIN Pessoa as t2 ON t1.pessoa_id = t2.rowid", sql)
+        assert.are.equals("SELECT t1.rowid as Casa_rowid, t1.nome as Casa_nome,t1.idade as Casa_idade, t2.rowid as pessoa_rowid, t2.sobrenome as pessoa_sobrenome, t2.cpf as pessoa_cpf FROM Casa as t1 LEFT OUTER JOIN Pessoa as t2 ON t1.pessoa_id = t2.rowid", sql)
     end)
+
+    it("Should create a select sql string with a WHERE and OR clause", function ()
+
+        local casaClass = {name="Casa", columns = {
+            nome = {},
+            idade = { notNull=true }} }
+        casaClass.whereClause = Table:_generateSQLWhere({id=2})
+        local sql = Table:_generateSQLSelect(casaClass)
+        assert.are.equals("SELECT t1.rowid as Casa_rowid, t1.nome as Casa_nome,t1.idade as Casa_idade FROM Casa as t1 WHERE id = 2", sql)
+        casaClass.orClause = Table:_generateSQLWhereOR({sobrenome='soares'})
+        local sql = Table:_generateSQLSelect(casaClass)
+        assert.are.equals("SELECT t1.rowid as Casa_rowid, t1.nome as Casa_nome,t1.idade as Casa_idade FROM Casa as t1 WHERE id = 2 OR sobrenome = 'soares'", sql)
+    end)
+end)
+
+describe("Generating SQL for WHERE", function()
+    it("Cannot generate SQL because a conditions was not passed as parameter", function ()
+
+        assert.has.errors(function()
+            Table:_generateSQLWhere()
+        end)
+    end)
+
+    it("Cannot generate SQL because conditions is empty", function ()
+
+        assert.has.errors(function()
+            Table:_generateSQLWhere({})
+        end)
+    end)
+
+    it("Cannot generate OR SQL because conditions is empty", function ()
+
+        assert.has.errors(function()
+            Table:_generateSQLWhereOR({})
+        end)
+    end)
+
+    it("Cannot generate OR SQL because a conditions was not passed as parameter", function ()
+
+        assert.has.errors(function()
+            Table:_generateSQLWhereOR()
+        end)
+    end)
+
+    --[[it("Cannot generate OR SQL because a WHERE was not invoked before.", function ()
+
+        assert.has.errors(function()
+            Table:_generateSQLWhereOR({nome='soares'})
+        end)
+    end)]]
+
+    it("should create a SQL clause with OR", function ()
+        --local sqlWhere = Table:_generateSQLWhere({nome='soares', cpf=123})
+
+        local sqlOR = Table:_generateSQLWhereOR({idade=30, sobrenome="silva"})
+        assert.are.equals(" OR sobrenome = 'silva' OR idade = 30",
+            sqlOR)
+
+    end)
+
+    it("should create a where clause with AND", function ()
+
+        local sql = Table:_generateSQLWhere({nome='soares', cpf=123})
+        assert.are.equals(" WHERE nome = 'soares' AND cpf = 123",
+            sql)
+        local sql = Table:_generateSQLWhere({nome='soares'})
+        assert.are.equals(" WHERE nome = 'soares'",
+            sql)
+    end)
+
+
+
 end)
 
 describe("Generating SQL for Insert", function()

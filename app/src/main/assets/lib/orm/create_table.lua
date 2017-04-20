@@ -175,47 +175,7 @@ function Table:_generateSQLInsert(model)
             end
         end
 
-
         sql = sql..sqlColumns..sqlValues
-
-
-        --[[for columnName, definitions in pairs(model.columns) do
-            local columnValue = "null"
-            if model[columnName] ~= nil then
-                columnValue = model[columnName]
-            end
-
-            table.insert(columnValues, columnValue)
-            sql = sql..""..columnName
-            counterForLoop = counterForLoop-1
-
-            if counterForLoop == 0 then
-                sql = sql..")"
-            else
-                sql = sql..","
-            end
-        end]]
-
-       --[[counterForLoop = sizeOfColumns
-
-        sql = sql.." VALUES ("
-
-        for index,value in ipairs(columnValues) do
-
-            if type(value) == "string" and value ~= "null" then
-                sql = sql.."'"..value.."'"
-            else
-                sql = sql..""..value
-            end
-
-            counterForLoop = counterForLoop-1
-            if counterForLoop == 0 then
-                sql = sql..")"
-            else
-                sql = sql..","
-            end
-        end]]
-
     end
 
     return sql
@@ -243,7 +203,6 @@ function Table:_generateSQLSelect(model)
         local foreignKeySQL = ""
 
         if model.belongsTo ~= nil and type(model.belongsTo) == "table" then
-
 
             -- SELECT a.rowid as a_rowid, * FROM Casa as a LEFT OUTER JOIN Pessoa as b on a.pessoa_id = b.rowid
 
@@ -274,6 +233,26 @@ function Table:_generateSQLSelect(model)
         end
         sql = sql.." FROM "..model.name.." as t1"
         sql = sql..foreignKeySQL
+
+        -- where e or
+        if model.whereClause ~= nil then
+            if type(model.whereClause) ~= "string" then
+                error("An invalid WHERE clause was passed.")
+            end
+
+            if model.orClause ~= nil and type(model.orClause) ~= "string" then
+                error("An invalid OR clause was passed.")
+            end
+
+            sql = sql..model.whereClause
+            if model.orClause ~= nil then
+                sql = sql..model.orClause
+            end
+
+        end
+
+
+
     else
         error("A model was expected to be different from nil and as a lua table. Also it must have a name.")
     end
@@ -292,8 +271,71 @@ function Table:_generateSQLDelete(model)
     return sql
 end
 
+-- SELECT t1.rowid as Casa_rowid, t1.nome as Casa_nome,t1.idade as Casa_idade, t2.rowid as pessoa_rowid, t2.sobrenome as pessoa_sobrenome, t2.cpf as pessoa_cpf FROM Casa as t1 LEFT OUTER JOIN Pessoa as t2 ON t1.pessoa_id = t2.rowid WHERE t1.pessoa_id = 1
+
+--[[
+-- Creates a SQL in format: column = value for use in WHERE.
+ ]]
+function Table:_generateColumnValueForConditions(conditions, separator)
+    if type(separator) ~= "string" or separator == "" then
+        error("You passed a invalid separator. It must be a string and not be empty.")
+    end
+    local sql = ""
+    local sizeOfColumns = table.getSize(conditions)
+    local counterForLoop = sizeOfColumns
+    for column, value in pairs(conditions) do
+
+
+        if type(value) == "string" then
+            value = "'"..value.."'"
+        end
+
+        sql = sql.." t1."..column.." = "..value
+        counterForLoop = counterForLoop-1
+        if counterForLoop ~= 0 then
+            sql = sql.." "..separator
+        end
+    end
+
+    return sql
+end
+
+-- TODO: fazer com que as conditions estejam associadas ao model
+
+function Table:_generateSQLWhere(conditions)
+
+    if conditions == nil or type(conditions) ~= "table" then
+        error("Cannot create where clause without conditions.")
+    end
+    local sizeOfColumns = table.getSize(conditions)
+    if sizeOfColumns == 0 then
+        error("Cannot create where clause with empty conditions.")
+    end
+
+    local sql = " WHERE"
+    sql = sql..self:_generateColumnValueForConditions(conditions, 'AND')
+
+    return sql
+end
+
+function Table:_generateSQLWhereOR(conditions)
+    if conditions == nil or type(conditions) ~= "table" then
+        error("Cannot create where clause without conditions.")
+    end
+
+    local sizeOfColumns = table.getSize(conditions)
+    if sizeOfColumns == 0 then
+        error("Cannot create where clause with empty conditions.")
+    end
+
+    local sql = " OR"
+    sql = sql..self:_generateColumnValueForConditions(conditions, 'OR')
+
+    return sql
+end
+
 function Table:_generateSQLUpdate(model)
-    local sql = nil
+    local sql
     local columnValues = self:_extractValuesForColumnsFromModel(model)
     local sizeOfColumns = table.getSize(model.columns)
     local counterForLoop = sizeOfColumns
@@ -310,6 +352,15 @@ function Table:_generateSQLUpdate(model)
                 sql = sql..","
             end
         end
+        if model.belongsTo ~= nil and type(model.belongsTo) == "table" then
+            for foreignKey, foreignTable in pairs(model.belongsTo) do
+                if model[foreignKey] ~= nil and type(model[foreignKey]) == "table" and model[foreignKey].rowid ~= nil then
+                    sql = sql..", "..foreignKey.."_id = "..model[foreignKey].rowid
+                else
+                    sql = sql..", "..foreignKey.."_id = null"
+                end
+            end
+        end
 
         sql = sql.." WHERE rowid = "..model.rowid
     else
@@ -320,9 +371,3 @@ function Table:_generateSQLUpdate(model)
 end
 
 return Table
-
-
-
-
-
-
