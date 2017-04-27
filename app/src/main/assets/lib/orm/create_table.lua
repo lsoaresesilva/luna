@@ -16,7 +16,7 @@
   * Gerar SQL order
   * Gerar SQL group
  ]]
---DEBUG = true
+DEBUG = false
 local class
 if DEBUG == false then
     class = require("lib.external.30log")

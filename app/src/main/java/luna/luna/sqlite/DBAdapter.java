@@ -51,7 +51,7 @@ public class DBAdapter extends SQLiteOpenHelper{
      * @return
      */
     public boolean executeSQL(String SQL){
-        if(SQL == null || SQL.equals(""){
+        if(SQL == null || SQL.equals("")){
             throw new IllegalArgumentException("An nil or empty SQL was used.");
         }
 

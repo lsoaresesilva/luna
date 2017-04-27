@@ -41,7 +41,7 @@ local class
   })
  ]]
 
-TEST = true
+TEST = false
 local class
 if TEST == false then
     class = require("lib.external.30log")
@@ -122,7 +122,8 @@ function Model:buildModels( rawNativeSQLResult )
         error("Cannot generate models without SQL rows.")
     end
 
-    if type(rawNativeSQLResult) ~= "table" or rawNativeSQLResult["count"] == nil or rawNativeSQLResult["get"] == nil then
+
+    if ((type(rawNativeSQLResult) ~= "table" and type(rawNativeSQLResult) ~= "userdata") or rawNativeSQLResult["count"] == nil or rawNativeSQLResult["get"] == nil) then
         error("Cannot generate models without a valid raw sql.")
     end
 
@@ -130,7 +131,8 @@ function Model:buildModels( rawNativeSQLResult )
 
     for i=0, rawNativeSQLResult:count()-1 do -- starts in 0 as it is a Java/Objective-c array
 
-        local columnValueDictionary = rawNativeSQLResult:get(i)
+        local columnValueDictionary = rawNativeSQLResult:get(i) -- está nil
+
         local model = {}
         local belongedModels = {}
         local hasManyModels = {}
@@ -186,6 +188,11 @@ function Model:buildModels( rawNativeSQLResult )
                 local condition = {}
                 condition[foreignKey] = model.rowid
                 local hasManyClass = require("models."..self.hasMany[recordsName])
+                -- generate tables, if not already.
+-- TODO: must change it to use a startup script which does this.
+-- TODO: list all models and call create table on it.
+-- TODO: lua does not have this native. :(
+                hasManyClass:_createTableSQL(hasManyClass)
                 local foreignRows = hasManyClass:where(condition):findAll()
                 if foreignRows ~= nil and type(foreignRows) == "table" and #foreignRows > 0 then
                     model[recordsName] = foreignRows
@@ -250,7 +257,7 @@ function Model:_createTableSQL(model)
 
       local sql = Table:_generateSQL(model)
 
-      if DEBUG == false then
+      if TEST == false then
         result = DBAdapter:executeSQL(sql)
         -- should not create a table everytime a new instance is created
         local myClass = require("models."..model.name)

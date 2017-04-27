@@ -1,8 +1,7 @@
-package luna.luna.userinterface;
+package luna.luna.userinterface.button;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.Image;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -14,11 +13,12 @@ import org.luaj.vm2.LuaNil;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 
 import ifpe.luajavaproject.MainActivity;
+import luna.luna.userinterface.UserInterfaceComponent;
 
 /**
  * This class is a abstraction to represent a native Button. It does not provide direct access to native button, instead encapsulates it providing access to only "allowed" methods.
@@ -27,7 +27,7 @@ import ifpe.luajavaproject.MainActivity;
  * For Lua it is not know which implementation will be called, as soon as the Native implementation provides these signatures.
  * Created by Leonardo Soares e Silva on 27/03/17.
  */
-public class ButtonNativeFactory extends UserInterfaceComponent{
+public class ButtonProxy extends UserInterfaceComponent{
 
     private MainActivity _activity;
 
@@ -40,19 +40,20 @@ public class ButtonNativeFactory extends UserInterfaceComponent{
      * @param properties An instance of LuaTable with
      * @return
      */
-    public static ButtonNativeFactory newButtonFactory(MainActivity context, LuaValue properties){
+    public static ButtonProxy newButtonProxy(HashMap properties, MainActivity context){
 
-        if( properties != null && properties instanceof LuaTable && ((LuaTable)properties).length() > 0) {
+        if( properties != null && properties.size() > 0) {
             try {
-                LuaValue identifier = properties.get("id");
-                LuaValue width = properties.get("width");
-                LuaValue height = properties.get("height");
-                LuaValue text = properties.get("text");
-                LuaTable imgSrc = (LuaTable) properties.get("img");
+                Integer identifier =  properties.containsKey("id")?(Integer)properties.get("id"):null;
+
+                Integer width =  properties.containsKey("width")?(Integer)properties.get("width"):null;
+                Integer height =  properties.containsKey("height")?(Integer)properties.get("height"):null;
+                String text =  properties.containsKey("text")?(String)properties.get("text"):null;
+                //LuaTable imgSrc = (LuaTable) properties.get("img");
 
                 View buttonCreated;
 
-                if(imgSrc != null && !(imgSrc.get("normal") instanceof LuaNil) ){
+                /*if(imgSrc != null && !(imgSrc.get("normal") instanceof LuaNil) ){
 
                     buttonCreated = new ImageButton(context);
                     try{
@@ -68,20 +69,20 @@ public class ButtonNativeFactory extends UserInterfaceComponent{
                         throw new IllegalArgumentException("Image for button not found.");
                     }
                 }
-                else{
+                else{*/
                     buttonCreated = new Button(context);
-                    if (text != null && text.isstring()) {
+                    if (text != null) {
                         ((Button)buttonCreated).setText(text.toString());
                     }else{
                         throw new IllegalArgumentException("Missing properties 'text' for button creation.");
                     }
+                //}
+
+                if (identifier != null ) {
+                    buttonCreated.setId(identifier);
                 }
 
-                if (identifier != null && identifier.isint() ) {
-                    buttonCreated.setId(identifier.toint());
-                }
-
-                return new ButtonNativeFactory(buttonCreated, context);
+                return new ButtonProxy(buttonCreated, context);
             } catch (LuaError luaError) {
                     return null;
             }
@@ -91,7 +92,7 @@ public class ButtonNativeFactory extends UserInterfaceComponent{
         }
     }
 
-    private ButtonNativeFactory(View _target, MainActivity activity) {
+    private ButtonProxy(View _target, MainActivity activity) {
         this.androidView = _target;
         this._activity = activity;
 

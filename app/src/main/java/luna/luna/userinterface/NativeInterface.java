@@ -4,6 +4,8 @@ import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 
 import ifpe.luajavaproject.MainActivity;
+import luna.luna.userinterface.button.ButtonBridge;
+import luna.luna.userinterface.button.ButtonFactory;
 
 /**
  * Created by macbookair on 26/03/17.
@@ -36,8 +38,12 @@ public class NativeInterface {
         return TextFieldNativeLayer.newTextField(this.activity, properties);
     }
 
-    public ButtonNativeFactory newButton(LuaValue properties){
+    /*public ButtonNativeFactory newButton(LuaValue properties){
         return ButtonNativeFactory.newButtonFactory(this.activity, properties);
+    }*/
+
+    public ButtonBridge newButton(String language, Object properties){
+        return ButtonFactory.newButton(language, properties, this.activity);
     }
 
     public SceneNativeFactory newScene(LuaTable options){

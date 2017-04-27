@@ -1,9 +1,11 @@
 package luna.luna.userinterface;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
+import org.luaj.vm2.LuaNil;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
@@ -12,6 +14,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import ifpe.luajavaproject.MainActivity;
+import luna.luna.userinterface.button.ButtonBridge;
+import luna.luna.userinterface.button.ButtonProxy;
 
 /**
  * Created by macbookair on 01/04/17.
@@ -32,50 +36,25 @@ public class LayoutNativeFactory extends UserInterfaceComponent{
 
         if(properties != null && properties instanceof LuaTable) {
             LuaValue orientation = properties.get("orientation");
-            if( orientation != null && orientation.isstring()){
+            if( !(orientation instanceof LuaNil) && orientation.isstring()){
                 layoutOrientation = orientation.toString();
             }
 
             LuaValue type = properties.get("type");
-            if( type != null && type.isstring()){
+            if( !(type instanceof LuaNil) && type.isstring()){
                 layoutType = type.toString();
             }
-            /*LuaValue k = LuaValue.NIL;
-            while (true) {
-                Varargs n = properties.next(k);
-                if ((k = n.arg1()).isnil())
-                    break;
 
-                LuaValue v = n.arg(2);
-                try {
-                    String key = k.toString();
-                    if (key.equals("type")) {
-                        layoutType = v.isstring() ? v.toString() : null;
-                    } else if (key.equals("orientation")) {
-                        layoutProperties.put(key, v.toString());
-                    }
-                } catch (ClassCastException e) {
-
-                }
-            }*/
         }
 
         if (layoutType.equals("linearLayout")) {
             layout = new LinearLayout(activity);
+            layout.setBackgroundColor(Color.BLUE);
             if( layoutOrientation.equals("horizontal") ) {
                 ((LinearLayout) layout).setOrientation(LinearLayout.HORIZONTAL);
             }else {
                 ((LinearLayout) layout).setOrientation(LinearLayout.VERTICAL);
             }
-                /*
-            if( layoutProperties.containsKey("orientation")){
-                if( layoutProperties.get("orientation").equals("horizontal") ){
-                    ;
-                }else if ( layoutProperties.get("orientation").equals("vertical") ){
-                    ((LinearLayout)layout).setOrientation(LinearLayout.VERTICAL);
-                }
-
-            }*/
 
         }
 
@@ -87,8 +66,12 @@ public class LayoutNativeFactory extends UserInterfaceComponent{
         this.androidView = this.createLayout(options);
     }
 
-    public void insert( UserInterfaceComponent component){
+    /*public void insert( UserInterfaceComponent component){
         ((ViewGroup)this.androidView).addView(component.getAndroidView());
+    }*/
+
+    public void insert( ButtonBridge component){
+        ((ViewGroup)this.androidView).addView(component.getButtonProxy().getAndroidView());
     }
 
     public static LayoutNativeFactory newLayoutFactory(MainActivity activity, LuaTable options) {

@@ -14,7 +14,11 @@ import ifpe.luajavaproject.MainActivity;
 import ifpe.luajavaproject.R;
 
 /**
- * This class is an "abstraction" for native elements used to create an Activity and layouts.
+ * A scene is an representation of a single "page/screen". An application must have at least one scene.
+ * Every scene is organized using a structure called layout. Layouts are a mean of defining how an component will be presented on scene.
+ * On Lua a scene is created through a call to newScene() from NativeInterface class, passing as parameter a table with at least a key called layout.
+ * The value os this key is an object from LayoutNative.
+ *
  */
 public class SceneNativeFactory{
 
