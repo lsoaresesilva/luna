@@ -6,19 +6,16 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 
-import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
-import org.luaj.vm2.LuaFunction;
-import org.luaj.vm2.LuaNil;
-import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaValue;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 
 import ifpe.luajavaproject.MainActivity;
+import luna.luna.syntax.data.LunaHashMapAdapter;
 import luna.luna.userinterface.UserInterfaceComponent;
+import luna.luna.syntax.function.LunaFunctionAdapter;
 
 /**
  * This class is a abstraction to represent a native Button. It does not provide direct access to native button, instead encapsulates it providing access to only "allowed" methods.
@@ -40,26 +37,25 @@ public class ButtonProxy extends UserInterfaceComponent{
      * @param properties An instance of LuaTable with
      * @return
      */
-    public static ButtonProxy newButtonProxy(HashMap properties, MainActivity context){
+    public static ButtonProxy newButtonProxy(LunaHashMapAdapter properties, MainActivity context){
 
         if( properties != null && properties.size() > 0) {
             try {
                 Integer identifier =  properties.containsKey("id")?(Integer)properties.get("id"):null;
 
-                Integer width =  properties.containsKey("width")?(Integer)properties.get("width"):null;
-                Integer height =  properties.containsKey("height")?(Integer)properties.get("height"):null;
+
                 String text =  properties.containsKey("text")?(String)properties.get("text"):null;
-                //LuaTable imgSrc = (LuaTable) properties.get("img");
+                LunaHashMapAdapter imgSrc = properties.containsKey("img")?(LunaHashMapAdapter) properties.get("img"):null;
 
                 View buttonCreated;
 
-                /*if(imgSrc != null && !(imgSrc.get("normal") instanceof LuaNil) ){
+                if(imgSrc != null && imgSrc.containsKey("normal") ){
 
                     buttonCreated = new ImageButton(context);
                     try{
                         InputStream imgFileNormal = context.getAssets().open("img/"+imgSrc.get("normal"));
                         InputStream imgFilePressed = null;
-                        if( !(imgSrc.get("pressed") instanceof LuaNil) ){
+                        if( imgSrc.containsKey("pressed") ){
                             imgFilePressed = context.getAssets().open("img/"+imgSrc.get("pressed"));
                         }
                         Bitmap bitmapNormal = BitmapFactory.decodeStream(imgFileNormal);
@@ -69,14 +65,14 @@ public class ButtonProxy extends UserInterfaceComponent{
                         throw new IllegalArgumentException("Image for button not found.");
                     }
                 }
-                else{*/
+                else{
                     buttonCreated = new Button(context);
                     if (text != null) {
                         ((Button)buttonCreated).setText(text.toString());
                     }else{
                         throw new IllegalArgumentException("Missing properties 'text' for button creation.");
                     }
-                //}
+                }
 
                 if (identifier != null ) {
                     buttonCreated.setId(identifier);
@@ -107,17 +103,13 @@ public class ButtonProxy extends UserInterfaceComponent{
         return _activity;
     }
 
-    public void setTouchCallback(final LuaFunction callBackName){
+    public void setTouchCallback(final LunaFunctionAdapter callBackName){
         androidView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Globals globals = get_activity().getGlobals();
-                try{
-                    if ( callBackName.checkfunction() != null ){
-                        callBackName.invoke();
-                    }
-                }catch(LuaError le){
-                    System.out.println(le.getMessage());
+
+                if ( callBackName.isFunction()  ){
+                    callBackName.execute();
                 }
 
             }

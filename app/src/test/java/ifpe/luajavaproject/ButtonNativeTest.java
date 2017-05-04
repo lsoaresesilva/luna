@@ -1,28 +1,9 @@
 package ifpe.luajavaproject;
 
-import android.content.res.AssetManager;
-import android.widget.Button;
-import android.widget.ImageButton;
-
-import org.junit.Assert;
-import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.luaj.vm2.LuaString;
-import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaValue;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-
-import luna.luna.userinterface.ButtonNativeFactory;
-import luna.luna.userinterface.NativeInterface;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Created by macbookair on 04/04/17.

@@ -1,5 +1,9 @@
 package luna.luna.userinterface.button;
 
+import android.support.annotation.NonNull;
+
+import org.luaj.vm2.LuaFunction;
+
 import ifpe.luajavaproject.MainActivity;
 
 
@@ -19,9 +23,15 @@ public abstract class ButtonBridge {
         this.buttonProxy = buttonProxy;
     }
 
+    @NonNull
     public static ButtonBridge newButtonBridge(Object properties, MainActivity context){
-        return null;
+        throw new UnsupportedOperationException("You must implement this method.");
     }
+
+    @NonNull
+    public abstract void setTouchCallback(final Object callBack);
+
+
 
 
 }

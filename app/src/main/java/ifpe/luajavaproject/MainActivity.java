@@ -1,17 +1,8 @@
 package ifpe.luajavaproject;
 
-import android.app.Activity;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.LinearLayoutCompat;
 import android.util.Log;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 
 import com.facebook.stetho.Stetho;
 
@@ -21,17 +12,11 @@ import org.luaj.vm2.*;
 import org.luaj.vm2.lib.ResourceFinder;
 import org.luaj.vm2.lib.jse.*;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Enumeration;
 
-import dalvik.system.DexFile;
 import luna.luna.geolocation.GeoLocationNative;
 import luna.luna.rest.RestNative;
-import luna.luna.sqlite.ActiveRecordNative;
 import luna.luna.sqlite.DBAdapter;
-import luna.luna.userinterface.ButtonNativeFactory;
 import luna.luna.userinterface.NativeInterface;
 
 public class MainActivity extends AppCompatActivity implements ResourceFinder {
